@@ -72,4 +72,14 @@ class MovieInfoControllerIntgTest {
 
         // then
     }
+
+    @Test
+    void getAllMovieInfos() {
+        webTestClient.get()
+                .uri(MOVIE_INFO_URL)
+                .exchange()
+                .expectStatus().is2xxSuccessful()
+                .expectBodyList(MovieInfo.class)
+                .hasSize(3);
+    }
 }
