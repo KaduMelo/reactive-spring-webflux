@@ -86,8 +86,10 @@ class MovieInfoControllerIntgTest {
     @Test
     void getMovieInfoById() {
 
+        // given
         var movieInfoId = "abc";
 
+        // when
         webTestClient.get()
                 .uri(MOVIE_INFO_URL + "/{id}", movieInfoId)
                 .exchange()
@@ -100,5 +102,32 @@ class MovieInfoControllerIntgTest {
 //                    var movieInfo = movieInfoEntityExchangeResult.getResponseBody();
 //                    assertNotNull(movieInfo);
 //                });
+    }
+
+    @Test
+    void updateMovieInfo() {
+        // given
+        var movieInfoId = "abc";
+        var movieInfo = new MovieInfo(null, "Kadu",
+                2005, List.of("Christian Bale", "Michael Cane"), LocalDate.parse("2023-06-15"));
+
+        // when
+        webTestClient.put()
+                .uri(MOVIE_INFO_URL+ "/{id}", movieInfoId)
+                .bodyValue(movieInfo)
+                .exchange()
+                .expectStatus()
+                .is2xxSuccessful()
+                .expectBody(MovieInfo.class)
+                .consumeWith(movieInfoEntityExchangeResult -> {
+
+                    var updatedMovieInfo = movieInfoEntityExchangeResult.getResponseBody();
+                    assert updatedMovieInfo != null;
+                    assert updatedMovieInfo.getMovieInfoId() != null;
+                    assertEquals("Kadu", updatedMovieInfo.getName());
+                });
+
+
+        // then
     }
 }
