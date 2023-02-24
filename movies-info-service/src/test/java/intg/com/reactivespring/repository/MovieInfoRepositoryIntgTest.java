@@ -69,4 +69,32 @@ class MovieInfoRepositoryIntgTest {
                 .verifyComplete();
 
     }
+
+    @Test
+    void findByYear() {
+        // given
+
+        // when
+        var moviesInfoFlux = movieInfoRepository.findByYear(2005).log();
+
+        // then
+        StepVerifier.create(moviesInfoFlux)
+                .expectNextCount(1)
+                .verifyComplete();
+
+    }
+
+    @Test
+    void findByName() {
+        // given
+
+        // when
+        var moviesInfoFlux = movieInfoRepository.findByName("The Dark Knight").log();
+
+        // then
+        StepVerifier.create(moviesInfoFlux)
+                .expectNextCount(1)
+                .verifyComplete();
+
+    }
 }
