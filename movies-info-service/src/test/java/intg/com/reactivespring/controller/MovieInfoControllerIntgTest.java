@@ -28,7 +28,7 @@ class MovieInfoControllerIntgTest {
     @Autowired
     WebTestClient webTestClient;
 
-    static String MOVIE_INFO_URL = "/v1/movieinfos";
+    public static String MOVIE_INFO_URL = "/v1/movieinfos";
 
     @BeforeEach
     void setUp() {
