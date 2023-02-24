@@ -10,6 +10,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.test.StepVerifier;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -129,5 +130,26 @@ class MovieInfoControllerIntgTest {
 
 
         // then
+    }
+
+    @Test
+    void deleteMovieInfo() {
+        // given
+        var movieInfoId = "abc";
+
+        // when
+        webTestClient.delete()
+                .uri(MOVIE_INFO_URL+ "/{id}", movieInfoId)
+                .exchange()
+                .expectStatus()
+                .isNoContent();
+
+
+        // then
+        var moviesInfoMono = movieInfoRepository.findById(movieInfoId).log();
+
+        StepVerifier.create(moviesInfoMono)
+                .expectNextCount(0)
+                .verifyComplete();
     }
 }
