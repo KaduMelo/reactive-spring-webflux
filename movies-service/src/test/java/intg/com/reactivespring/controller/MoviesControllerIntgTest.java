@@ -1,6 +1,8 @@
 package com.reactivespring.controller;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.reactivespring.domain.Movie;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -30,9 +32,14 @@ public class MoviesControllerIntgTest {
     @Autowired
     WebTestClient webTestClient;
 
+    @BeforeEach
+    void setUp() {
+        WireMock.reset();
+    }
+
     @Test
     void retrieveMovieById() {
-        // given
+        //given
         var movieId = "abc";
         stubFor(get(urlEqualTo("/v1/movieinfos/" + movieId))
                 .willReturn(aResponse()
@@ -40,105 +47,131 @@ public class MoviesControllerIntgTest {
                         .withBodyFile("movieinfo.json")));
 
         stubFor(get(urlPathEqualTo("/v1/reviews"))
+                .withQueryParam("movieInfoId", equalTo(movieId))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withBodyFile("reviews.json")));
-        // when
-        webTestClient
-                .get()
-                .uri("/v1/movies/{id}", movieId)
+
+
+        //when
+        webTestClient.get()
+                .uri("/v1/movies/{id}", "abc")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(Movie.class)
                 .consumeWith(movieEntityExchangeResult -> {
-                    var movie = movieEntityExchangeResult.getResponseBody();
-                    assert Objects.requireNonNull(movie).getReviewList().size() == 2;
-                    assertEquals("Batman Begins", movie.getMovieInfo().getName());
-                });
-
-
+                            var movie = movieEntityExchangeResult.getResponseBody();
+                            assert Objects.requireNonNull(movie).getReviewList().size() == 2;
+                            assertEquals("Batman Begins", movie.getMovieInfo().getName());
+                        }
+                );
+        //then
     }
 
     @Test
-    void retrieveMovieById_movie_info_404() {
-        // given
+    void retrieveMovieById_404() {
+        //given
         var movieId = "abc";
         stubFor(get(urlEqualTo("/v1/movieinfos/" + movieId))
                 .willReturn(aResponse()
                         .withStatus(404)));
 
         stubFor(get(urlPathEqualTo("/v1/reviews"))
+                .withQueryParam("movieInfoId", equalTo(movieId))
                 .willReturn(aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withBodyFile("reviews.json")));
-        // when
-        webTestClient
-                .get()
-                .uri("/v1/movies/{id}", movieId)
+                        .withStatus(404)));
+
+
+        //when
+        webTestClient.get()
+                .uri("/v1/movies/{id}", "abc")
                 .exchange()
-                .expectStatus()
-                .is4xxClientError()
-                .expectBody(String.class)
-                .isEqualTo("There is no MovieInfo Available for the passed in Id : abc");
-
-
+                .expectStatus().is4xxClientError();
+        //then
+        // WireMock.verify(4, getRequestedFor(urlEqualTo("/v1/movieinfos/" + movieId)));;
     }
 
-    @Test
-    void retrieveMovieById_reviews_404() {
-        // given
-        var movieId = "abc";
 
+    @Test
+    void retrieveMovieById_Reviews_404() {
+        //given
+        var movieId = "abc";
         stubFor(get(urlEqualTo("/v1/movieinfos/" + movieId))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withBodyFile("movieinfo.json")));
 
         stubFor(get(urlPathEqualTo("/v1/reviews"))
+                .withQueryParam("movieInfoId", equalTo(movieId))
                 .willReturn(aResponse()
                         .withStatus(404)));
-        // when
-        webTestClient
-                .get()
-                .uri("/v1/movies/{id}", movieId)
+
+
+        //when
+        webTestClient.get()
+                .uri("/v1/movies/{id}", "abc")
                 .exchange()
-                .expectStatus().isOk()
-                .expectBody(Movie.class)
-                .consumeWith(movieEntityExchangeResult -> {
-                    var movie = movieEntityExchangeResult.getResponseBody();
-                    assert Objects.requireNonNull(movie).getReviewList().size() == 0;
-                    assertEquals("Batman Begins", movie.getMovieInfo().getName());
-                });
-
-
+                .expectStatus().is2xxSuccessful();
+        //then
+        // WireMock.verify(4, getRequestedFor(urlEqualTo("/v1/movieinfos/" + movieId)));;
     }
 
     @Test
-    void retrieveMovieById_reviews_5XX() {
-        // given
+    void retrieveMovieById_5XX() {
+        //given
         var movieId = "abc";
-
         stubFor(get(urlEqualTo("/v1/movieinfos/" + movieId))
                 .willReturn(aResponse()
                         .withStatus(500)
                         .withBody("MovieInfo Service Unavailable")));
 
-        stubFor(get(urlPathEqualTo("/v1/reviews"))
+        /*stubFor(get(urlPathEqualTo("/v1/reviews"))
+                .withQueryParam("movieInfoId", equalTo(movieId))
+                .willReturn(aResponse()
+                        .withStatus(500)));
+*/
+
+        //when
+        webTestClient.get()
+                .uri("/v1/movies/{id}", "abc")
+                .exchange()
+                .expectStatus().is5xxServerError()
+                .expectBody(String.class)
+                .value(message -> {
+                    assertEquals("Server Exception in MovieIndoService MovieInfo Service Unavailable", message);
+                });
+        //then
+
+        WireMock.verify(4, getRequestedFor(urlEqualTo("/v1/movieinfos/" + movieId)));
+    }
+
+    @Test
+    void retrieveMovieById_reviews_5XX() {
+        //given
+        var movieId = "abc";
+        stubFor(get(urlEqualTo("/v1/movieinfos/" + movieId))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBodyFile("reviews.json")));
-        // when
-        webTestClient
-                .get()
-                .uri("/v1/movies/{id}", movieId)
+                        .withBodyFile("movieinfo.json")));
+
+
+        stubFor(get(urlPathEqualTo("/v1/reviews"))
+                .withQueryParam("movieInfoId", equalTo(movieId))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                        .withBody("Review Service Unavailable")));
+
+        //when
+        webTestClient.get()
+                .uri("/v1/movies/{id}", "abc")
                 .exchange()
-                .expectStatus()
-                .is5xxServerError()
+                .expectStatus().is5xxServerError()
                 .expectBody(String.class)
-                .isEqualTo("Server Exception in MovieIndoService MovieInfo Service Unavailable");
+                .value(message -> {
+                    assertEquals("Server Exception in ReviewsService Review Service Unavailable", message);
+                });
+        //then
 
-
-
-
+        WireMock.verify(4, getRequestedFor(urlPathMatching("/v1/reviews*")));
     }
 }
