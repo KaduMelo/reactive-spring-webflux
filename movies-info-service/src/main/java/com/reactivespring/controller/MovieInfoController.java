@@ -24,7 +24,7 @@ public class MovieInfoController {
         this.movieInfoService = movieInfoService;
     }
 
-    Sinks.Many<MovieInfo> moviesInfoSink = Sinks.many().replay().all();
+    Sinks.Many<MovieInfo> movieInfoSink = Sinks.many().replay().latest();
 
     @GetMapping("/movieinfos")
     public Flux<MovieInfo> getAllMovieInfos(@RequestParam(value = "year", required = false) Integer year) {
@@ -44,15 +44,16 @@ public class MovieInfoController {
     }
 
     @GetMapping(value = "/movieinfos/stream", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Flux<MovieInfo> streamMovieInfo() {
-        return moviesInfoSink.asFlux().log();
+    public Flux<MovieInfo> streamMovieInfos() {
+
+        return movieInfoSink.asFlux();
     }
 
     @PostMapping("/movieinfos")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<MovieInfo> addMovieInfo(@RequestBody @Valid MovieInfo movieInfo) {
         return movieInfoService.addMovieInfo(movieInfo)
-                .doOnNext(savedInfo -> moviesInfoSink.tryEmitNext(savedInfo));
+                .doOnNext(savedInfo -> movieInfoSink.tryEmitNext(savedInfo));
     }
 
     @PutMapping("/movieinfos/{id}")
